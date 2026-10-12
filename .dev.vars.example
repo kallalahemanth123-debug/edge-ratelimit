@@ -1,0 +1,9 @@
+# Copy to .dev.vars for `wrangler dev`. Never commit .dev.vars.
+# Defaults below target the local emulator in dev/upstash_emulator.py.
+# To use a real Upstash database instead: https://<db>.upstash.io + its REST token.
+ENVIRONMENT=development
+UPSTASH_REDIS_REST_URL=http://127.0.0.1:8079
+UPSTASH_REDIS_REST_TOKEN=dev-token-123456
+ADMIN_API_TOKEN=local-admin-token-0123456789abcdef0123
+REDIS_TIMEOUT_MS=250
+KEY_CACHE_TTL_SECONDS=30

@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "edge-ratelimit"
+version = "1.0.0"
+description = "Python client for the Edge Rate Limit & Abuse Protection API"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+dependencies = ["httpx>=0.24,<1"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Framework :: AsyncIO",
+  "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "mypy>=1.8"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["edge_ratelimit"]
+
+[tool.mypy]
+strict = true
+files = ["edge_ratelimit", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

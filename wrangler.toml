@@ -1,0 +1,23 @@
+name = "edge-ratelimit"
+main = "src/worker.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Non-secret configuration. Secrets are set with:
+#   wrangler secret put UPSTASH_REDIS_REST_URL
+#   wrangler secret put UPSTASH_REDIS_REST_TOKEN
+#   wrangler secret put ADMIN_API_TOKEN        (optional; enables /v1/admin)
+#   wrangler secret put LOG_DRAIN_URL          (optional)
+#   wrangler secret put LOG_DRAIN_TOKEN        (optional)
+[vars]
+ENVIRONMENT = "production"
+REDIS_TIMEOUT_MS = "250"
+KEY_CACHE_TTL_SECONDS = "30"
+
+[observability]
+enabled = true
+
+# Keep the isolate close to the Upstash primary region when most traffic is
+# regional; remove to let Cloudflare run the Worker at the closest PoP.
+# [placement]
+# mode = "smart"

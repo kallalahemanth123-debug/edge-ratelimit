@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.wrangler/
+.dev.vars
+*.log
+__pycache__/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.venv/
+sdk/node/dist/
