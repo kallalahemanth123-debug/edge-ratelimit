@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  worker:
+    name: Worker · typecheck, unit tests, bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - name: Production bundle builds
+        run: npx wrangler deploy --dry-run --outdir dist
+        env:
+          WRANGLER_SEND_METRICS: "false"
+
+  node-sdk:
+    name: Node SDK · Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    defaults:
+      run:
+        working-directory: sdk/node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+          cache-dependency-path: sdk/node/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run test:smoke
+
+  node-sdk-runtime:
+    # The test tooling needs Node 22+, but the published SDK supports 18.17+.
+    # Build once on 22, then exercise the built package on the older runtimes.
+    name: Node SDK runtime · Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20]
+    defaults:
+      run:
+        working-directory: sdk/node
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: sdk/node/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - run: node test/smoke.mjs
+
+  python-sdk:
+    name: Python SDK · Python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.9", "3.11", "3.13"]
+    defaults:
+      run:
+        working-directory: sdk/python
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pip
+      - run: pip install -e '.[dev]'
+      - run: pytest -q
+      - name: mypy --strict
+        if: matrix.python == '3.13'
+        run: mypy --strict
+
+  e2e:
+    name: End-to-end · workerd + Redis + both SDKs
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            sdk/node/package-lock.json
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: npm ci
+      - name: Build Node SDK
+        working-directory: sdk/node
+        run: npm ci && npm run build
+      - run: pip install redis httpx
+      - name: Run end-to-end suite
+        run: bash dev/ci-e2e.sh
+        env:
+          REDIS_URL: redis://127.0.0.1:6379/0
+          LOG_DIR: ${{ runner.temp }}/e2e-logs
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-logs
+          path: |
+            ${{ runner.temp }}/e2e-logs
+            !${{ runner.temp }}/e2e-logs/api-key
+          retention-days: 7

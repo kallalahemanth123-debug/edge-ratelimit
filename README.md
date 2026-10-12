@@ -1,5 +1,8 @@
 # Edge Rate Limit & Abuse Protection
 
+[![CI](https://github.com/kallalahemanth123-debug/edge-ratelimit/actions/workflows/ci.yml/badge.svg)](https://github.com/kallalahemanth123-debug/edge-ratelimit/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A serverless rate-limiting API: **Cloudflare Workers + Hono** at the edge,
 **Upstash Redis** for distributed counters, and drop-in SDKs for
 **TypeScript/Node.js** and **Python**.
@@ -171,11 +174,20 @@ def login():
 
 ## Local development & tests
 
+CI (`.github/workflows/ci.yml`) runs everything below on every push and pull
+request: worker type check, unit tests and production bundle; Node SDK tests on
+Node 22/24 plus a runtime smoke test of the built package on Node 18/20; Python
+SDK tests on 3.9/3.11/3.13 with `mypy --strict`; and the full end-to-end suite
+against workerd and a real Redis (`dev/ci-e2e.sh`).
+
 ```bash
 # Unit tests + strict type checks
 npm test && npm run typecheck
-(cd sdk/node && npm install && npm test && npm run typecheck && npm run build)
-(cd sdk/python && pip install -e '.[dev]' && pytest && mypy)
+(cd sdk/node && npm install && npm test && npm run typecheck && npm run build && npm run test:smoke)
+(cd sdk/python && pip install -e '.[dev]' && pytest && mypy --strict)
+
+# Everything end-to-end in one command (needs Redis on 6379, `pip install redis httpx`)
+bash dev/ci-e2e.sh
 
 # Full stack locally (real workerd + real Redis)
 redis-server --port 6390 --save '' &
@@ -188,3 +200,7 @@ E2E_REDIS_TIMEOUT_MS=1500 E2E_EXPORT_KEY_FILE=/tmp/rl-key node dev/e2e.mjs
 python dev/e2e_python.py /tmp/rl-key
 python dev/lua_property_test.py --redis redis://127.0.0.1:6390/0
 ```
+
+## License
+
+[MIT](LICENSE)

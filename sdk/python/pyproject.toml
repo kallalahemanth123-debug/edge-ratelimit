@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling>=1.21"]
+requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
@@ -16,6 +16,9 @@ classifiers = [
   "Framework :: AsyncIO",
   "Typing :: Typed",
 ]
+
+[project.urls]
+Repository = "https://github.com/kallalahemanth123-debug/edge-ratelimit"
 
 [project.optional-dependencies]
 dev = ["pytest>=7", "mypy>=1.8"]
